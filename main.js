@@ -38,33 +38,6 @@ function resolveURI(URI) {
     })
 }
 
-/*
-function resolvePredicate(predicateURI, cb) {
-    $.ajax({
-        url: predicateURI,
-        headers: { 'Accept': 'text/turtle' }
-    }).done(function(data) {
-        var parser = N3.Parser();
-        parser.parse(data, function(err, triple, prefixes) {
-            if(triple) {
-                // add it to a global predicates whatever
-                // resolve all predicates LOL
-                if(!predicates[triple.predicate]) {
-                    // resolve this predicate since it doesn't exist
-                    predicates[triple.predicate] = true;
-                }
-            } else {
-                // done
-            }
-        })
-    })
-
-}
-*/
-
-var seedURI = 'http://dbpedia.org/resource/Keanu_Reeves';
-resolveURI(seedURI)
-
 // events
 $(function() {
 
@@ -102,6 +75,7 @@ $(function() {
         // get data from previous path
         var val = $('.type').val()
         var matches = predicates[val];
+        if(!matches) matches = [val];
 
         // remove all .type classes
         $('.type').each(function() { $(this).removeClass('type') })

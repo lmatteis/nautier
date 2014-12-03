@@ -1,38 +1,66 @@
 var predicates = {}
+var resolvedPredicates = {}
 
 function resolveURI(URI) {
     $.ajax({
         url: URI,
         headers: { 'Accept': 'text/turtle' }
     }).done(function(data) {
-        predicates[URI] = {}
         var parser = N3.Parser();
         parser.parse(data, function(err, triple, prefixes) {
             if(triple) {
                 // add it to a global predicates whatever
-                // resolve all predicates LOL
-                if(!predicates[triple.predicate]) {
-                    // resolve this predicate since it doesn't exist
-                    predicates[triple.predicate] = [];
+                if(triple.subject == URI) {
 
-                    /*
-                    resolvePredicate(triple.predicate, function() {
+                    if(!predicates[triple.predicate]) {
+                        // this predicate doesn't exist!
+                        // resolve it only if it's not already resolved
+                        if(!resolvedPredicates[triple.predicate]) {
+                            resolvePredicate(triple.predicate)
+                        }
 
-                        predicates[triple.predicate] = true;
-                    })
-                    */
+                        predicates[triple.predicate] = [];
+                    }
+                    predicates[triple.predicate].push(triple.object);
                 }
+
+                /*
                 if(URI == triple.object) { // means it's predicate OF
 
-                    predicates[triple.predicate].push(triple.subject);
+                    //predicates[triple.predicate].push(triple.subject);
                 } else {
                     predicates[triple.predicate].push(triple.object);
                 }
+                */
             } else {
                 for(var uri in predicates) {
 
                     $('.type-ahead').append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
                 }
+            }
+        })
+    })
+}
+
+function resolvePredicate(predicateURI) {
+    $.ajax({
+        url: predicateURI,
+        headers: { 'Accept': 'text/turtle' }
+    }).done(function(data) {
+        var parser = N3.Parser();
+        parser.parse(data, function(err, triple, prefixes) {
+            if(triple) {
+                if(triple.subject == predicateURI) {
+                    // should also add comment or other predicates?
+                    if(triple.predicate == 'http://www.w3.org/2000/01/rdf-schema#label') {
+                        if(!resolvedPredicates[predicateURI]) {
+                            resolvedPredicates[predicateURI] = ''
+                        }
+                        resolvedPredicates[predicateURI] += triple.object
+                    }
+                }
+            } else {
+                // finished parsing
             }
         })
     })
@@ -50,6 +78,15 @@ $(function() {
             var result = uri.match(new RegExp(val, 'i'));
             if(result) {
 
+                $type.append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
+            }
+        }
+
+
+        $type.append('<li>resolved matches:</li>')
+        for(var uri in resolvedPredicates) {
+            var result = resolvedPredicates[uri].match(new RegExp(val, 'i'));
+            if(result) {
                 $type.append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
             }
         }

@@ -122,6 +122,7 @@ $(function() {
 
         // XXX reset predicate state
         predicates = {}
+        resolvedPredicates = {}
         for(var i in matches) {
             var uri = matches[i];
             resolveURI(uri)

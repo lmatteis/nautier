@@ -1,7 +1,16 @@
 var predicates = {}
 var resolvedPredicates = {}
 
+var triples = []
+
 function resolveURI(URI) {
+    // sometimes URI is a string (literal or integer)
+    // check if it starts with http (ugly)
+    if (URI.lastIndexOf('http', 0) !== 0) { // doesn't with HTTP
+
+        console.log(URI);
+        return;
+    }
     $.ajax({
         url: URI,
         headers: { 'Accept': 'text/turtle' }
@@ -13,6 +22,18 @@ function resolveURI(URI) {
                 // and not just <uri> ?p ?o
                 if(triple.subject == URI || triple.object == URI) {
 
+                    if(triple.subject == URI) {
+                        triples.push(triple);
+                    } else {
+                        // XXX switching subject with object
+                        var subject = triple.subject;
+                        triple.subject = triple.object;
+                        triple.object = subject
+
+                        triples.push(triple);
+                    }
+
+                    /*
                     if(!predicates[triple.predicate]) {
                         // this predicate doesn't exist!
                         // resolve it only if it's not already resolved
@@ -27,6 +48,7 @@ function resolveURI(URI) {
                     } else {
                         predicates[triple.predicate].push(triple.subject);
                     }
+                    */
                 }
 
                 /*
@@ -38,10 +60,19 @@ function resolveURI(URI) {
                 }
                 */
             } else {
+                var predicates = {}
+                for(var i in triples) {
+                    triple = triples[i];
+                    if(!predicates[triple.predicate]) {
+                        predicates[triple.predicate] = [];
+                    }
+                    predicates[triple.predicate].push(triple.object);
+                }
                 for(var uri in predicates) {
 
                     $('.type-ahead').append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
                 }
+
             }
         })
     })
@@ -79,15 +110,39 @@ $(function() {
         var val = $this.val()
         var $type = $('.type-ahead')
         $type.html('')
-        for(var uri in predicates) {
-            var result = uri.match(new RegExp(val, 'i'));
-            if(result) {
 
-                $type.append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
+        for(var i in triples) {
+            var triple = triples[i];
+
+            var presult = triple.predicate.match(new RegExp(val, 'i'));
+            var oresult = triple.object.match(new RegExp(val, 'i'));
+
+            if(presult || oresult) {
+                var $subject = $('[id="'+triple.subject+'"]');
+                var $predicate = $('[id="' + triple.subject + triple.predicate+'"]');
+
+                if($predicate.length) {
+
+                    $predicate.find('ul:first').append('<li id="'+triple.subject+triple.predicate+triple.object+'"><a href="'+triple.object+'">' + triple.object + '</a></li>');
+
+                } else {
+
+                    if($subject.length) {
+
+                        $subject.find('ul:first').append('<li id="'+triple.subject + triple.predicate+'"><a href="'+triple.predicate+'">' + triple.predicate + '</a><ul><li id="'+triple.subject+triple.predicate+triple.object+'"><a href="'+triple.object+'">' + triple.object + '</a></li>')
+
+                    } else {
+
+                        $type.append('<li id="'+triple.subject+'"><a href="'+triple.subject+'">' + triple.subject + '</a><ul><li id="'+triple.subject + triple.predicate+'"><a href="'+triple.predicate+'">' + triple.predicate + '</a><ul><li id="'+triple.subject+triple.predicate+triple.object+'"><a href="'+triple.object+'">' + triple.object + '</a></li></ul></li></ul></li>')
+
+                    }
+
+                }
             }
         }
 
 
+        /*
         $type.append('<li>resolved matches:</li>')
         for(var uri in resolvedPredicates) {
             var result = resolvedPredicates[uri].match(new RegExp(val, 'i'));
@@ -95,6 +150,7 @@ $(function() {
                 $type.append('<li><a href="'+uri+'">' + resolvedPredicates[uri] + ' - ['+predicates[uri].length+']</a></li>')
             }
         }
+        */
     })
 
     $(document).on('click', 'ul.type-ahead li a', function(e) {
@@ -106,32 +162,55 @@ $(function() {
 
     $('button.submit').click(function(e) {
         var val = $('.type').val()
-        // slash represent path
-        var matches = predicates[val];
-        console.log(matches)
+
+        for(var i in triples) {
+            var triple = triples[i];
+            if(val == triple.subject ||
+                val == triple.predicate ||
+                val == triple.object) {
+
+                console.log(triple);
+                
+            }
+        }
 
         e.preventDefault()
         e.stopPropagation()
     })
     $('a.new_path').click(function() {
-        // get data from previous path
+
+
         var val = $('.type').val()
-        var matches = predicates[val];
-        if(!matches) matches = [val];
+
+        // see if we have val, in the triples
+        var found = false;
+        for(var i in triples) {
+            var triple = triples[i];
+            if(val == triple.predicate) {
+                // we have to decide whether to resolve
+                // the subject or object based on the current URI
+                resolveURI(triple.object);
+                found = true;
+            }
+            if(val == triple.object) {
+
+                resolveURI(val);
+                found = true;
+            }
+        }
+
+        if(!found) {
+            resolveURI(val)
+        }
+
+        // reset state
+        triples = []
 
         // remove all .type classes
         $('.type').each(function() { $(this).removeClass('type') })
         $('.path').append("<input type='text' class='type' />")
 
         $('.type-ahead').html('')
-
-        // XXX reset predicate state
-        predicates = {}
-        resolvedPredicates = {}
-        for(var i in matches) {
-            var uri = matches[i];
-            resolveURI(uri)
-        }
         
     })
 

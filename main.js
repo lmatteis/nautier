@@ -9,8 +9,9 @@ function resolveURI(URI) {
         var parser = N3.Parser();
         parser.parse(data, function(err, triple, prefixes) {
             if(triple) {
-                // add it to a global predicates whatever
-                if(triple.subject == URI) {
+                // linked data could return also ?s ?p <uri>
+                // and not just <uri> ?p ?o
+                if(triple.subject == URI || triple.object == URI) {
 
                     if(!predicates[triple.predicate]) {
                         // this predicate doesn't exist!
@@ -21,7 +22,11 @@ function resolveURI(URI) {
 
                         predicates[triple.predicate] = [];
                     }
-                    predicates[triple.predicate].push(triple.object);
+                    if(triple.subject == URI) {
+                        predicates[triple.predicate].push(triple.object);
+                    } else {
+                        predicates[triple.predicate].push(triple.subject);
+                    }
                 }
 
                 /*
@@ -87,7 +92,7 @@ $(function() {
         for(var uri in resolvedPredicates) {
             var result = resolvedPredicates[uri].match(new RegExp(val, 'i'));
             if(result) {
-                $type.append('<li><a href="'+uri+'">' + uri + ' - ['+predicates[uri].length+']</a></li>')
+                $type.append('<li><a href="'+uri+'">' + resolvedPredicates[uri] + ' - ['+predicates[uri].length+']</a></li>')
             }
         }
     })

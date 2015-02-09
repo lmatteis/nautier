@@ -29,11 +29,14 @@ var predicateResolution = function(triples, cb) {
     }
 }
 var edgeResolution = function(uri, triples, cb) {
+    var edges = {};
     for(var i=0; i<triples.length; i++) {
         var triple = triples[i];
         var edge = triple.subject; 
         if(edge == uri)
             edge = triple.object;
+        if(edges[edge]) continue;
+        edges[edge] = true;
 
         dereference(edge, function(triples) {
             for(var i in triples)

@@ -1,7 +1,6 @@
-
 KeywordNavigation(
     ['http://dbpedia.org/resource/Keanu_Reeves'],
-    ['star'],
+    ['the matrix'],
     0,
     []
 );
@@ -12,6 +11,7 @@ function KeywordNavigation(inputURIs, keywords,
         MP = [],
         currKeyword = keywords[currKeywordIdx];
     if(!currKeyword) {
+        console.log(MT)
         return MT;
     }
 
@@ -55,13 +55,16 @@ function KeywordNavigation(inputURIs, keywords,
             }
         }
     };
+    MT_unique = {}
     function MT_push(triple) {
+        if(MT_unique[triple.subject + triple.predicate + triple.object])
+            return;
+        MT_unique[triple.subject + triple.predicate + triple.object] = true;
         var uris = getSubjectObjectUris(triple);
         for(var i in uris) {
             var uri = uris[i]
             if(!(inputURIs.indexOf(uri) > -1)) {
                 if(uri.indexOf('http') == 0) {
-                    console.log(uri)
                     KeywordNavigation([uri], keywords,
                                       currKeywordIdx + 1, MT);
                 }

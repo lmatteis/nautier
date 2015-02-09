@@ -1,9 +1,13 @@
+var fs = require('fs')
+var util = require('./util');
+
 KeywordNavigation(
     ['http://dbpedia.org/resource/Keanu_Reeves'],
     ['starring'],
     0,
     []
 );
+fs.writeFile('out.json', '')
 function KeywordNavigation(inputURIs, keywords,
                            currKeywordIdx, MT) {
     var T = [],
@@ -22,15 +26,15 @@ function KeywordNavigation(inputURIs, keywords,
     MP_unique = {}
     for(var i=0; i<inputURIs.length; i++) {
         var uri = inputURIs[i];
-        dereference(uri, function(triples) {
+        util.dereference(uri, function(triples) {
             for(var i=0; i<triples.length; i++) {
                 var triple = triples[i];
                 T_push(triple);
             }
-            predicateResolution(triples, function(t) {
+            util.predicateResolution(triples, function(t) {
                 P_push(t);
             });
-            edgeResolution(uri, triples, function(t) {
+            util.edgeResolution(uri, triples, function(t) {
                 T_push(t);
             });
         });
@@ -40,7 +44,7 @@ function KeywordNavigation(inputURIs, keywords,
             return;
         T.push(triple);
         T_unique[triple.subject + triple.predicate + triple.object] = true;
-        if(contains(triple, currKeyword)) {
+        if(util.contains(triple, currKeyword)) {
             MT_push(triple);
         }
     }
@@ -49,7 +53,7 @@ function KeywordNavigation(inputURIs, keywords,
             return;
         P.push(triple);
         P_unique[triple.subject + triple.predicate + triple.object] = true;
-        if(contains(triple, currKeyword)) {
+        if(util.contains(triple, currKeyword)) {
             MP_push(triple);
         }
     }
@@ -65,19 +69,27 @@ function KeywordNavigation(inputURIs, keywords,
             }
         }
     };
+    var URIs = {}
     function MT_push(triple) {
         if(MT_unique[triple.subject + triple.predicate + triple.object])
             return;
         MT.push(triple);
         MT_unique[triple.subject + triple.predicate + triple.object] = true;
-        var uris = getSubjectObjectUris(triple);
+        var uris = util.getSubjectObjectUris(triple);
+
         for(var i in uris) {
             var uri = uris[i]
+            if(URIs[uri])
+                continue;
             if(!(inputURIs.indexOf(uri) > -1)) {
                 if(uri.indexOf('http') == 0) {
-                    console.log(uri)
+                    /*
                     KeywordNavigation([uri], keywords,
                                       currKeywordIdx + 1, MT);
+                    */
+
+                    fs.appendFile('out.json', uri + '\n')
+                    URIs[uri] = true;
                 }
             }
         }
